@@ -58,8 +58,13 @@ class Commander:
 
                 print("Popping  from main path : ", self.main_path.pop(0))
                 if not self.check_if_all_edges_and_nodes_are_visited():
-                    next_edge = self.main_path[0]
-                    self.next_node = next_edge[1]
+                    try:
+                        next_edge = self.main_path[0]
+                        self.next_node = next_edge[1]
+                    except Exception as e:
+                        print("Exception ",e)
+                        self.print_status(verbose=True,debug_run=True)
+                        raise Exception("Exception")
 
             else:
 
@@ -73,7 +78,7 @@ class Commander:
 
     def go_around(self):
 
-        print("<<< OBSTACLE >>> going around")
+        print("\n\n<<< OBSTACLE >>> going around")
         while self.current_node != self.next_node:
 
             try:
@@ -110,16 +115,17 @@ class Commander:
         print("Popping  from main path : ", self.main_path.pop(0))
         next_edge = self.main_path[0]
         self.next_node = next_edge[1]
-        print("Finished rerouting")
+        print("Finished rerouting\n\n")
 
+    def remove_node(self, node_to_remove):
+        self.graph.remove_node(node_to_remove)
+        self.visited_nodes.pop(node_to_remove,None)
+        self.map = nx.eulerize(self.graph)
+        
     def detect_obstacle(self, next_node):
         # return random.uniform(0, 1) > 1.1
         # return (self.current_node, next_node) in blocked_edges
         return self.detect_obstacle_callback(next_node)
-
-    def remove_node(self, node_to_remove):
-        self.graph.remove_node(node_to_remove)
-        self.map = nx.eulerize(self.graph)
 
     def remove_edge(self, blocked_edge):
         print("Removing edge ", blocked_edge)
@@ -127,13 +133,25 @@ class Commander:
 
         try:
             self.graph.remove_edge(blocked_edge[0], blocked_edge[1])
+            self.visited_edges.pop((blocked_edge[0], blocked_edge[1]),None)
+            self.visited_edges.pop((blocked_edge[1], blocked_edge[0]),None)
+            
         except:
             print("INFO >>> removing not existing edge, it was propably removed during rerouting procedure = ", blocked_edge)
 
-        self.map = nx.eulerize(self.graph)
+        # Checking if nodes arae all connected to
+        for node in self.graph.nodes:
+            if self.graph.degree(node) == 0:
+                self.isolated_nodes = node
+                self.remove_node(node)
 
-        self.visited_edges.pop((blocked_edge[0], blocked_edge[1]), None)
-        self.visited_edges.pop((blocked_edge[1], blocked_edge[0]), None)
+        try:
+            self.map = nx.eulerize(self.graph)
+        except nx.NetworkXError as e:
+            print("ERROR  >>> ",e)
+            print("degrees : ",{node : self.graph.degree(node) for node in self.graph.nodes})
+            raise nx.NetworkXError("PART OF THE ROOM IS NOT ACCESIBLE")
+
 
     def update_visited(self, start_node, end_node):
         self.visited_edges[(start_node, end_node)] = True

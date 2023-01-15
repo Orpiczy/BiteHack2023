@@ -26,7 +26,7 @@ office_graph_xy_pos = {0: [0     , 0],
 
 
 
-blocked_edges = [(0, 1), (1, 2), (3, 4), (7, 8), (8, 7)]
+blocked_edges = [(0, 1), (1, 2)]
 blocked_nodes = [9]
 
 office_graph = nx.Graph(office_graph_dict)
