@@ -13,31 +13,21 @@ office_graph_dict = {0: [1, 3],
                      7: [4, 6, 8],
                      8: [5, 7]}
 
-blocked_edges = [(0, 1), (1, 2), (3, 4)]
+blocked_edges = [(0, 1), (1, 2), (3, 4),(7,8),(8,7)]
 blocked_nodes = [9]
 
 office_graph = nx.Graph(office_graph_dict)
-office_graph_eulerize = nx.eulerize(office_graph)
 
+class Commander:
 
-# print(nx.eulerian_path(office_graph,0))
-
-obj = nx.eulerian_path(nx.eulerize(office_graph), 5)
-# for i in obj:
-#     print(i)
-# def search():
-
-
-class Navigator:
-
-    def __init__(self, graph=nx.Graph()):
+    def __init__(self, graph, starting_node, detect_obstacle_callback):
 
         self.graph = graph
         self.map = nx.eulerize(graph)
 
         self.reset_visited()
 
-        self.current_node = 0
+        self.current_node = starting_node
         self.main_path = [edges for edges in nx.eulerian_path(
             self.map, self.current_node)]
 
@@ -46,6 +36,8 @@ class Navigator:
 
         self.blocked_edges = []
         self.isolated_nodes = []
+        
+        self.detect_obstacle_callback = detect_obstacle_callback
 
     def search(self):
 
@@ -61,7 +53,7 @@ class Navigator:
                 self.print_status()
                 self.update_visited(self.current_node, self.next_node)
 
-                self.send_cmd(self.next_node)
+                # self.send_cmd(self.next_node)
                 self.current_node = self.next_node
 
                 print("Popping  from main path : ", self.main_path.pop(0))
@@ -73,13 +65,15 @@ class Navigator:
 
                 self.remove_edge((self.current_node, self.next_node))
                 self.go_around()
-        
+
         self.prepare_results()
         self.print_summary()
+        
+        return self.get_search_summary()
 
     def go_around(self):
 
-        print("Obstacle >>> going around")
+        print("<<< OBSTACLE >>> going around")
         while self.current_node != self.next_node:
 
             try:
@@ -103,7 +97,7 @@ class Navigator:
                 auxilary_path.pop(0)  # gets rid of current node from path
 
                 dest_node = auxilary_path[0]
-                self.send_cmd(dest_node)
+                # self.send_cmd(dest_node)
                 self.current_node = dest_node
 
             else:
@@ -120,7 +114,8 @@ class Navigator:
 
     def detect_obstacle(self, next_node):
         # return random.uniform(0, 1) > 1.1
-        return (self.current_node, next_node) in blocked_edges
+        # return (self.current_node, next_node) in blocked_edges
+        return self.detect_obstacle_callback(next_node)
 
     def remove_node(self, node_to_remove):
         self.graph.remove_node(node_to_remove)
@@ -152,9 +147,10 @@ class Navigator:
     def check_if_all_edges_and_nodes_are_visited(self):
         return all(self.visited_nodes.values()) and all(self.visited_edges.values())
 
-    def send_cmd(self, destination):
-        print("<<< CMD >>>")
-        print("destination : ", destination)
+    # def send_cmd(self, destination):
+    #     print("<<< CMD >>>")
+    #     print("destination : ", destination)
+    
 
     def print_status(self, verbose=False, debug_run=False):
         if not debug_run:
@@ -177,6 +173,10 @@ class Navigator:
     def prepare_results(self):
         self.blocked_edges = set(self.blocked_edges)
         self.isolated_nodes = set(self.isolated_nodes)
+    
+    def get_search_summary(self):
+        return {"blocked_edges": self.blocked_edges,
+                "isolated_nodes": self.isolated_nodes}
         
     def print_summary(self):
         print("\n\n<<< FINAL RESULTS >>>")
@@ -185,9 +185,9 @@ class Navigator:
         print("isolated nodes: ", self.isolated_nodes)
 
 
-nav = Navigator(office_graph)
-# try:
-nav.search()
+# nav = Commander(office_graph)
+# # try:
+# nav.search()
 # except Exception as e:
 #     print("Error: ", e)
 #     nav.print_status(verbose=True,debug_run=True)
